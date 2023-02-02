@@ -1,0 +1,192 @@
+﻿@page "/singup";
+@page "/singup/{url}";
+
+@using Microsoft.IdentityModel.Tokens;
+
+@layout Shithead.Client.Shared.Layouts.Empty;
+
+@inject IUserApiService _userService;
+@inject IImageInputServices _imageService;
+@inject NavigationManager _navigationManager;
+@inject INotificationApiService _notificationService;
+
+<section id="singUp" class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="text-center p-4">
+                <h2>SingUp</h2>
+                <p class="text-muted">To find out how good your game is!</p>
+                <hr />
+            </div>
+            <div class="d-flex justify-content-center row">
+                <EditForm Model="@model" OnValidSubmit="@(async () => await HandleValidSubmit())" class="form">
+                    <DataAnnotationsValidator />
+
+                    <div class="row mt-4">
+                        <div class="col-12 d-flex justify-content-center">
+                            <img loading="lazy" src="@model.Image" class="ratio ratio-1x1 user-large" alt="" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="mt-4 input-group">
+                                @*!IMPORTANT: Make sure that the id on the InputeFile element is uniq other wise it will call te wrong method on the change*@
+                                <InputFile OnChange="@((InputFileChangeEventArgs args) => this.SetImageUser(args))" class="form-control" id="singUpImageUpload" />
+                                @if (image != null && !string.IsNullOrEmpty(image.Error))
+                                {
+                                    <div>
+                                        <div class="validation-message">@image.Error</div>
+                                    </div>
+                                }
+                            </div>
+                            <div class="mt-4">
+                                <InputText @bind-Value="model.UserName" class="form-control" type="text" placeholder="name" />
+                                <ValidationMessage For="() => model.UserName" />
+                            </div>
+                            <div class="mt-4">
+                                <InputText @bind-Value="model.Email" class="form-control" type="text" placeholder="email" />
+                                <ValidationMessage For="() => model.Email" />
+                            </div>
+                            <div class="mt-4">
+                                <InputText @bind-Value="model.Password" class="form-control" type="password" placeholder="password" />
+                                <ValidationMessage For="() => model.Password" />
+                            </div>
+                            <div class="mt-4">
+                                <InputCheckbox @bind-Value="model.Conditions" class="form-check-input" type="checkbox" />
+                                <label class="form-check-label" for="flexCheckIndeterminate">
+                                    <label class="font-size-16">
+                                        I agree to the
+                                        <a @onclick="@(() => LoadPage("/terms"))" href="">terms and conditions</a>
+                                    </label>
+                                </label>
+                                <ValidationMessage For="() => model.Conditions" />
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(error))
+                    {
+                        <label>@error</label>
+                    }
+
+                    <div class="row mt-4">
+                        <div class="d-grid gap-4 col-12 mx-auto">
+                            <button class="btn btn-outline gradient @loading.Css" disabled="@loading.Value" type="submit">
+                                <span><span>Registreer</span></span>
+                            </button>
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+            <div class="text-center w-100">
+                <hr />
+                <p class="text-muted">
+                    Already have an account, <a @onclick="@(() => LoadPage(string.IsNullOrEmpty(url) ? "singin" : $"singin/{url}"))" class="link">Login</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+@code {
+    /// <summary>
+    /// Url
+    /// </summary>
+    [Parameter]
+    public string url { get; set; }
+
+    /// <summary>
+    /// Url
+    /// </summary>
+    private string redirectUrl => Base64UrlEncoder.Decode(url);
+
+    /// <summary>
+    /// Model
+    /// </summary>
+    public Models.User model = new()
+        {
+            Id = Guid.NewGuid(),
+            Created = DateTime.UtcNow
+        };
+
+    /// <summary>
+    /// Image
+    /// </summary>
+    public Models.Image image { get; set; }
+
+    /// <summary>
+    /// Error
+    /// </summary>
+    public string error { get; set; }
+
+    /// <summary>
+    /// Loading
+    /// </summary>
+    public Loading loading { get; set; } = new(false);
+
+    /// <summary>
+    /// When the user sumbits there data we sing them in
+    /// </summary>
+    private async Task HandleValidSubmit()
+    {
+        loading = new(true);
+        error = null;
+
+        if (model.Image == "/img/user-stock.jpeg")
+        {
+            image.Error = "Enter an image.";
+            loading = new(false);
+
+            return;
+        }
+
+        // Create welkom email
+        model.HtmlEmail = new(adress: model.Email,
+                              title: "Welcom to Shitead.Games!",
+                              subject: $"Activate your account",
+                              name: model.UserName,
+                              html: new BlazorTemplater.ComponentRenderer<Shithead.Client.Emails.Welcome>()
+                                                       .Render());
+
+        // Sing new user up
+        var resultSingUp = await _userService.SingUp(model);
+        if (CheckResult(resultSingUp.Success)) return;
+
+        // Sing new user in
+        var resultSingIn = await _userService.SingIn(new() { Email = model.Email, Password = model.Password });
+        if (CheckResult(resultSingIn.Success)) return;
+
+        await _userService.SetUser();
+        loading = new(false);
+
+        LoadPage(string.IsNullOrEmpty(url) ? "friends" : redirectUrl);
+    }
+
+    /// <summary>
+    /// Checks result
+    /// </summary>
+    private bool CheckResult(bool value)
+    {
+        if (value) return false;
+
+        error = "You don't need to even play this game to become a shithead because you are alredy one";
+        loading = new(false);
+
+        return true;
+    }
+
+    /// <summary>
+    /// Sets image
+    /// </summary>
+    /// <param name="files"></param>
+    private async Task SetImageUser(InputFileChangeEventArgs args)
+    {
+        image = await _imageService.CompressToBase64(args);
+        if (string.IsNullOrEmpty(image.Error)) model.Image = image.Base64;
+    }
+
+    /// <summary>
+    /// Loads another page
+    /// </summary>
+    public void LoadPage(string name) => _navigationManager.NavigateTo($"/{name}");
+}

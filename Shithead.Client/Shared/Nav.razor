@@ -1,0 +1,90 @@
+﻿@inject IUserApiService _userService;
+@inject NavigationManager _navigationManager;
+@inject IJSRuntime _jsRuntime;
+
+<nav id="navigation" class="navbar fixed-top w-100 px-4">
+    <div class="d-flex justify-content-between w-100">
+        <a class="navbar-brand" href="">Shithead</a>
+
+        @if (tabes)
+        {
+            <ul class="nav nav-pills">
+                <li class="nav-item">
+                    <a class="nav-link" @onclick="@(() => ScrollToElement("#download"))">
+                        Download
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" @onclick="@(() => ScrollToElement("#cards"))">
+                        Cards
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" @onclick="@(() => ScrollToElement("#contact"))">
+                        Contact
+                    </a>
+                </li>
+            </ul>
+        }
+        
+        @if(SessionUser.IsLoading)
+        {
+            <div class="nav-item">
+                <label class="nav-link">Loading...</label>
+            </div>
+        }
+        else if(SessionUser.IsNull)
+        {
+            <div @onclick="@(() => LoadPage("singin"))" class="nav-item">
+                <label class="nav-link"><a class="link">Login</a></label>
+            </div>
+        }
+        else 
+        {
+            <div class="nav-item">
+                <div class="dropdown">
+                    <div class="row" id="menu" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="col-6 d-flex">
+                            <img loading="lazy" src="@SessionUser.Data.Image" class="ratio ratio-1x1 user-small" alt="User image" />
+                            <label class="nav-link"><a class="link">@SessionUser.Data.UserName</a></label>
+                        </div>
+                    </div>
+                    <ul class="dropdown-menu" aria-labelledby="menu">
+                        <li><a @onclick="@(() => LoadPage("friends"))" class="dropdown-item">Friends</a></li>
+                        <li><a class="dropdown-item">Settings</a></li>
+                        <li><a @onclick="@(() => _userService.SingOut())" class="dropdown-item">Log out</a></li>
+                    </ul>
+                </div>
+            </div>
+        }
+    </div>
+</nav>
+
+@code {
+    /// <summary>
+    /// Tabes
+    /// </summary>
+    [CascadingParameter(Name = "tabes")]
+    protected bool tabes { get; set; }
+
+    /// <summary>
+    /// On initialized
+    /// </summary>
+    protected override void OnInitialized() => SessionUser.EventHandlerUserChanged += Rerender;
+
+    /// <summary>
+    /// Rerenders page
+    /// </summary>
+    public void Rerender(object sender, EventArgs e) => InvokeAsync(() => this.StateHasChanged());
+
+    /// <summary>
+    /// Loads another page
+    /// </summary>
+    public void LoadPage(string name) => _navigationManager.NavigateTo($"/{name}");
+
+    /// <summary>
+    /// Scrolls to element by id
+    /// </summary>
+    /// <param name="elementId"></param>
+    public async Task ScrollToElement(string elementId) => await _jsRuntime.InvokeAsync<string>("scrollToElement", elementId);
+}

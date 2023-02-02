@@ -1,0 +1,38 @@
+﻿.modal-backdrop {
+    z-index: 10000;
+    background-color: #00000057;
+}
+
+.modal {
+    z-index: 100000;
+
+    .modal-dialog {
+        .modal-content {
+            border: 0;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+
+            .modal-header {
+                border: none;
+                padding-bottom: 0px;
+
+                .btn-close {
+                    position: absolute;
+                    right: 15px;
+                    top: 15px;
+                    z-index: 100;
+                }
+            }
+
+            .modal-body {
+                border: none;
+                padding-top: 0px;
+                padding-bottom: 0px;
+            }
+
+            .modal-footer {
+                border: none;
+                padding-top: 0px;
+            }
+        }
+    }
+}

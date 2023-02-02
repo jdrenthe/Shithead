@@ -1,0 +1,60 @@
+﻿@inherits LayoutComponentBase;
+
+@inject IUserApiService _userService;
+@inject IGameApiService _gameService;
+@inject NavigationManager _navigationManager;
+
+<CascadingValue Name="tabes" Value="@false">
+    <Shithead.Client.Shared.Nav />
+</CascadingValue>
+
+@if (SessionUser.IsLoading || SessionGame.IsLoading || isLoading)
+{
+    <label>Loading...</label>
+}
+else
+{
+    @Body
+}
+
+@code {
+    /// <summary>
+    /// Is loading
+    /// </summary>
+    private bool isLoading { get; set; } = true;
+
+    /// <summary>
+    /// On initialized async
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        SessionUser.EventHandlerUserChanged += Rerender;
+    }
+
+    /// <summary>
+    /// Rerenders page
+    /// </summary>
+    public void Rerender(object sender, EventArgs e) => InvokeAsync(() => this.StateHasChanged());
+
+    /// <summary>
+    /// Loads another page
+    /// </summary>
+    public void LoadPage(string name) => _navigationManager.NavigateTo($"/{name}");
+
+    /// <summary>
+    /// On after render async
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        if (SessionUser.IsNull) await _userService.SetUser();
+        if (!SessionUser.IsNull && SessionGame.IsNull) await _gameService.GetGame(SessionUser.Data.Id);
+
+        if (!SessionGame.IsNull) LoadPage("game");
+
+        isLoading = false;
+
+        this.StateHasChanged();
+    }
+}

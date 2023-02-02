@@ -1,0 +1,82 @@
+﻿@using Microsoft.AspNetCore.SignalR.Client;
+
+<div class="head">
+    <div class="d-flex justify-content-center">
+        @{
+            var list = players.Where(p => p.Position != 0 && p.Joint).OrderByDescending(p => p.Position).ToList();
+        }
+        @foreach (var player in list)
+        {
+            <div class="m-2 @(player.Joint ? "joint" : string.Empty) @(player.Turn == Turn.Current ? "current" : player.Turn == Turn.Previous ? "previous" : player.Turn == Turn.Next ? "next" : string.Empty)">
+                <img @onclick="@(() => { stats = player.User.Id == user?.Id || stats?.Id == player.Id  ? null : player; })" loading="lazy" src="@player.User.Image" class="ratio ratio-1x1 user-small" alt="Friend image" />
+            </div>
+        }
+    </div>
+    @if (stats != null)
+    {
+        <div class="stats d-flex justify-content-center">
+            @*Open*@
+            <div class="d-flex justify-content-center">
+                @foreach (var card in stats.Open)
+                {
+                    <CascadingValue Value="@card" Name="card">
+                        <Shithead.Client.Shared.Card />
+                    </CascadingValue>
+                }
+            </div>
+            @*Closed*@
+            <div class="stats-closed d-flex justify-content-center">
+                @foreach (var card in stats.Closed)
+                {
+                    <CascadingValue Value="@card" Name="card">
+                        <Shithead.Client.Shared.Card />
+                    </CascadingValue>
+                }
+            </div>
+            @*Amount of cards in hand*@
+            <p class="fs-6 text-center">Amount of cards in hand <br /> @stats.Hand?.Count()</p>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// Players
+    /// </summary>
+    [CascadingParameter(Name = "Players")]
+    protected List<Models.Player> players { get; set; }
+
+    /// <summary>
+    /// Hub connection
+    /// </summary>
+    [CascadingParameter(Name = "HubConnection")]
+    protected HubConnection hubConnection { get; set; }
+
+    /// <summary>
+    /// Game
+    /// </summary>
+    private Models.Game game => SessionGame.Data;
+
+    /// <summary>
+    /// User
+    /// </summary>
+    private Models.User user => SessionUser.Data;
+
+    /// <summary>
+    /// Stats of a player
+    /// </summary>
+    private Models.Player? stats { get; set; }
+
+    /// <summary>
+    /// On initialized
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        //Update players received
+        hubConnection.On<List<Models.Player>>("UpdatePlayersReceived", (newPlayers) =>
+        {
+            players = newPlayers;
+            this.StateHasChanged();
+        });
+    }
+}

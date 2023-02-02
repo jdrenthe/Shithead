@@ -1,0 +1,1061 @@
+﻿@page "/game";
+
+@using Microsoft.AspNetCore.SignalR.Client;
+@using System.Diagnostics.CodeAnalysis;
+
+@layout Shithead.Client.Shared.Layouts.Game;
+
+@inject NavigationManager _navigationManager;
+@inject IGameApiService _gameService;
+@inject IJSRuntime _jsRuntime;
+
+@implements IAsyncDisposable;
+
+<section id="game">
+    @if (shithead == null)
+    {
+        @*Header*@
+        if (hubConnection != null && SessionGame.Data.Players != null && SessionGame.Data.Players.Count() > 0)
+        {
+            <CascadingValue Value="@SessionGame.Data.Players" Name="Players">
+                <CascadingValue Value="@hubConnection" Name="HubConnection">
+                    <Shithead.Client.Shared.Head />
+                </CascadingValue>
+            </CascadingValue>
+        }
+
+        if (hubConnection == null)
+        {
+            <div class="row">
+                <div class="col-12">
+                    <h3>Connecting...</h3>
+                </div>
+            </div>
+        }
+        else if (!player.Joint)
+        {
+            <div class="position-absolute top-50 start-50 translate-middle">
+                <h3>Join game?</h3>
+                <button @onclick="@(async () => await StartGame(true))" class="btn btn-outline gradient @loading.Css" disabled="@loading.Value" type="button">
+                    <span><span>Yes</span></span>
+                </button>
+                <button @onclick="@(async () => await StartGame(false))" class="btn btn-outline gradient @loading.Css" disabled="@loading.Value" type="button">
+                    <span><span>No</span></span>
+                </button>
+            </div>
+        }
+        else
+        {
+            @*Body*@
+            if (game.Players.Any(p => p.Joint == false))
+            {
+                <div class="position-absolute top-50 start-50 translate-middle">
+                    <label>Whait for players to join.</label>
+                </div>
+            }
+            else if (game.Cards != null && game.Cards.Count() > 0)
+            {
+                if (isHandVisibel || isOpenVisibel)
+                {
+                    if (player.SwitchedCards && game.Previous == null && game.Current == null && game.Next == null)
+                    {
+                        <div class="position-absolute top-50 start-50 translate-middle">
+                            <label>Whait for players to switch cards</label>
+                        </div>
+                    }
+                    else if (player.SwitchedCards)
+                    {
+                        @*Pile*@
+                        <div class="pile d-flex justify-content-center">
+                            @if (game.Pile != null && game.Pile.Count() > 0)
+                            {
+                                foreach (var card in game.Pile.OrderBy(c => c.Order).ToList())
+                                {
+                                    card.IsBlocked = game.Rule != null && game.Rule == Rule.Blocked;
+                                    card.IsDroppable = true;
+                                    card.IsDraggeble = false;
+
+                                    <CascadingValue Value="@card" Name="card">
+                                        <Shithead.Client.Shared.Card />
+                                    </CascadingValue>
+                                }
+                                @*Playing before there turn*@
+                                if (game.Rule == Rule.Blocked && game.Pile[0].PlayerId == player.Id)
+                                {
+                                    <div class="btn-group">
+                                        <button @onclick="@(async () =>
+                                        {
+                                            game.Cards.ForEach(c => { if (c.State == State.Blocked) c.State = State.Hand; });
+                                            game.Rule = GetGameRule();
+
+                                            await UpdateCards();
+                                        })" class="btn">
+                                            Take it back!
+                                        </button>
+                                    </div>
+                                }
+                                else if (player.Id == game.Current.Id)
+                                {
+                                    @*Current player moves*@
+                                    <div class="btn-group">
+                                        @if (game.Rule == Rule.Clear)
+                                        {
+                                            <button @onclick="@(async () =>
+                                            {
+                                                game.Cards.ForEach(c => { if (c.Value == 7) c.Seven = Seven.None; if (game.Pile.Any(pc => pc.Id == c.Id)) c.State = State.Trash; });
+                                                await UpdateCards();
+                                            })" class="btn">
+                                                Clear
+                                            </button>
+                                        }
+                                        else if (game.Rule == Rule.Seven && game.Pile[0].Seven == Seven.None)
+                                        {
+                                            <button @onclick="@(async () =>
+                                            {
+                                                game.Cards.ForEach(c => { if (c.Id == game.Pile[0].Id) c.Seven = Seven.Higher; });
+                                                await NextTurn();
+                                                await UpdateCards();
+                                                this.StateHasChanged();
+                                            })" class="btn">
+                                                Higher
+                                            </button>
+                                            <button @onclick="@(async () =>
+                                            {
+                                                game.Cards.ForEach(c => { if (c.Id == game.Pile[0].Id) c.Seven = Seven.Lower; });
+                                                await NextTurn();
+                                                await UpdateCards();
+                                                this.StateHasChanged();
+                                            })" class="btn">
+                                                Lower
+                                            </button>
+                                        }
+                                        else if (game.Rule == Rule.GetIt)
+                                        {
+                                            <button @onclick="@(async () =>
+                                            {
+                                                game.Cards.ForEach(c =>
+                                                {
+                                                    if (c.State == State.Pile)
+                                                    {
+                                                        c.PlayerId = player.Id;
+                                                        c.State = State.Hand;
+                                                        c.Seven = Seven.None;
+                                                    }
+                                                });
+
+                                                await PreviousTurn();
+                                            })" class="btn">
+                                                Get it!
+                                            </button>
+                                        }
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <CascadingValue Value="@game.Current" Name="player">
+                                    <Shithead.Client.Shared.Card />
+                                </CascadingValue>
+                            }
+                        </div>
+                    }
+
+                    if (isHandVisibel || !player.SwitchedCards)
+                    {
+                        @*Hand*@
+                        <div class="hand d-flex justify-content-center @(player.SwitchedCards ? "bottom-0" : "")">
+                            @foreach (var card in player.Hand)
+                            {
+                                card.IsDraggeble = true;
+                                card.IsDroppable = !player.SwitchedCards;
+
+                                <CascadingValue Value="@card" Name="card">
+                                    <Shithead.Client.Shared.Card />
+                                </CascadingValue>
+                            }
+                        </div>
+                    }
+
+                    if (isOpenVisibel || !player.SwitchedCards)
+                    {
+                        var showClosedCard = false;
+
+                        @*Open*@
+                        <div class="open d-flex justify-content-center">
+                            @foreach (var card in player.Open)
+                            {
+                                //Before the shit starts the player can switch there cardes
+                                if (!player.SwitchedCards)
+                                {
+                                    card.IsDraggeble = true;
+                                    card.IsDroppable = true;
+                                }
+
+                                //When a players hand is empty they can start on there open hand
+                                if (player.Hand?.Count == 0)
+                                {
+                                    card.IsDraggeble = true;
+                                }
+
+                                <CascadingValue Value="@card" Name="card">
+                                    <Shithead.Client.Shared.Card />
+                                </CascadingValue>
+                            }
+                        </div>
+                        @*Closed*@
+                        <div class="closed d-flex justify-content-center">
+                            @foreach (var card in player.Closed)
+                            {
+                                if (player.Hand?.Count == 0 && player.Open?.Count == 0 && !showClosedCard)
+                                {
+                                    card.State = State.Hand;
+                                    card.IsDraggeble = true;
+
+                                    showClosedCard = true;
+                                }
+
+                                <CascadingValue Value="@card" Name="card">
+                                    <Shithead.Client.Shared.Card />
+                                </CascadingValue>
+                            }
+                        </div>
+                    }
+                }
+                else if (isTrashVisibel)
+                {
+                    @*Trash*@
+                    <div class="trash d-flex justify-content-center">
+                        @if (game.Trash != null && game.Trash.Count() > 0)
+                        {
+                            foreach (var card in game.Trash)
+                            {
+                                <CascadingValue Value="@card" Name="card">
+                                    <Shithead.Client.Shared.Card />
+                                </CascadingValue>
+                            }
+                        }
+                        else
+                        {
+                            @*Trash is empty*@
+                        }
+                    </div>
+                }
+            }
+        }
+
+        @*Footer*@
+        <div class="foot">
+            <div class="d-flex justify-content-center">
+                @if (player.SwitchedCards)
+                {
+                    if (player.Hand?.Count > 0)
+                    {
+                        @*Hand button*@
+                        <button @onclick="@(() => { isHandVisibel = true; })" class="btn m-2">H</button>
+                    }
+                    if (player.Open?.Count > 0 || player.Closed?.Count > 0)
+                    {
+                        @*Open button*@
+                        <button @onclick="@(() => { isOpenVisibel = true; })" class="btn m-2">O</button>
+                    }
+                    if (game.Trash?.Count > 0)
+                    {
+                        @*Trash button*@
+                        <button @onclick="@(() => { isTrashVisibel = true; })" class="btn m-2">T</button>
+                    }
+                }
+                else if (player.Joint && game.Players.All(p => p.Joint))
+                {
+                    <button @onclick="@(async () => await SwitchedCards())" class="btn m-2">
+                        Switched Cards
+                    </button>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        @*Shithead*@
+        <div class="container-fluid justify-content-center">
+            <div class="row">
+                <div class="col-12">
+                    <div class="text-center p-4">
+                        <img loading="lazy" src="@shithead.User.Image" class="ratio ratio-1x1 user-large" alt="Shithead" />
+                        <h2>@shithead.User.UserName</h2>
+                        <p>Is the Shithead!</p>
+                        <button @onclick="@(() => EndGame())" class="btn btn-outline gradient @loading.Css" disabled="@loading.Value" type="button">
+                            <span><span>End Game</span></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    /// <summary>
+    /// Game
+    /// </summary>
+    private Models.Game game => SessionGame.Data;
+
+    /// <summary>
+    /// Player
+    /// </summary>
+    private Models.Player player => game.Players.FirstOrDefault(p => p.UserId == SessionUser.Data.Id);
+
+    /// <summary>
+    /// Shithead
+    /// </summary>
+    private Models.Player? shithead
+    {
+        get
+        {
+            var players = game.Players.Where(p => p.Position != 0).ToList();
+            return players.Count > 1 ? null : players[0];
+        }
+    }
+
+    /// <summary>
+    /// Hub connection
+    /// </summary>
+    private HubConnection hubConnection { get; set; }
+
+    /// <summary>
+    /// Is connected
+    /// </summary>
+    private bool isConnected => hubConnection?.State == HubConnectionState.Connected;
+
+    /// <summary>
+    /// Loading
+    /// </summary>
+    private Loading loading { get; set; } = new(false);
+
+    /// <summary>
+    /// Symbols : Diamond ♦, Heart ♥, Clube ♣, Spade ♠
+    /// </summary>
+    private List<string> symbols = new() { "♦", "♥", "♣", "♠" };
+
+    /// <summary>
+    /// Is hand visibel
+    /// </summary>
+    private bool isHandVisibel
+    {
+        get => _hand;
+        set
+        {
+            _hand = value;
+            _open = false;
+            _trash = false;
+        }
+    }
+    private bool _hand;
+
+    /// <summary>
+    /// Is open visibel
+    /// </summary>
+    private bool isOpenVisibel
+    {
+        get => _open;
+        set
+        {
+            _hand = false;
+            _open = value;
+            _trash = false;
+        }
+    }
+    private bool _open;
+
+    /// <summary>
+    /// Is trash visibel
+    /// </summary>
+    private bool isTrashVisibel
+    {
+        get => _trash;
+        set
+        {
+            _hand = false;
+            _open = false;
+            _trash = value;
+        }
+    }
+    private bool _trash;
+
+    /// <summary>
+    ///  Error
+    /// </summary>
+    private string error { get; set; }
+
+    /// <summary>
+    /// On initialized async
+    /// </summary>
+    protected override async Task OnInitializedAsync()
+    {
+        SessionGame.EventHandlerGameChanged += Rerender;
+        SessionGame.EventHandlerCardDropped += CardDropped;
+
+        isHandVisibel = true;
+
+        //Creates hub connection
+        hubConnection = new HubConnectionBuilder().WithUrl(_navigationManager.ToAbsoluteUri("/gamehub"))
+                                                  .WithAutomaticReconnect()
+                                                  .Build();
+
+        //Update received
+        hubConnection.On<Models.Game>("UpdateReceived", (newGame) =>
+        {
+            SessionGame.Data = newGame;
+        });
+
+        //Update players received
+        hubConnection.On<List<Models.Player>>("UpdatePlayersReceived", (newPlayers) =>
+        {
+            SessionGame.Data.Players = newPlayers;
+        });
+
+        //Starts SignalR connection
+        await hubConnection.StartAsync();
+
+        //Adds this user to the SignalR game group
+        await AddToGame();
+    }
+
+    /// <summary>
+    /// Rerenders page
+    /// </summary>
+    public async void Rerender(object sender, EventArgs e) => await InvokeAsync(() => this.StateHasChanged());
+
+    /// <summary>
+    /// Updates game
+    /// </summary>
+    private async Task UpdateGame() => await hubConnection?.SendAsync("UpdatedGame", game);
+
+    /// <summary>
+    /// Updates players
+    /// </summary>
+    private async Task UpdatePlayers() => await hubConnection?.SendAsync("UpdatePlayers", game, SessionGame.Data.Players);
+
+    /// <summary>
+    /// Adds player to SignalR group game
+    /// </summary>
+    private async Task AddToGame() => await hubConnection?.SendAsync("AddToGame", game.Id);
+
+    /// <summary>
+    /// Updates cards
+    /// </summary>
+    /// <returns></returns>
+    private async Task UpdateCards()
+    {
+        var resultCard = await _gameService.UpdateCards(game.Cards);
+        if (!resultCard.Success)
+        {
+            //Error
+            return;
+        }
+
+        await UpdateGame();
+    }
+
+    /// <summary>
+    /// Updates player
+    /// </summary>
+    private async Task UpdatePlayer()
+    {
+        var result = await _gameService.UpdatePlayer(player);
+        if (!result.Success)
+        {
+            //error
+            return;
+        }
+
+        await UpdateGame();
+    }
+
+    /// <summary>
+    /// Removes player from game
+    /// </summary>
+    private async Task RemovePlayer()
+    {
+        var result = await _gameService.RemovePlayer(player);
+        if (!result.Success)
+        {
+            //error
+            return;
+        }
+
+        LoadPage("friends");
+    }
+
+    /// <summary>
+    /// Sets player cards
+    /// </summary>
+    private void SetPlayerCards(Models.Player player, List<Models.Card> cards, State state)
+    {
+        var values = cards.Where(c => c.PlayerId == null).Take(3).ToList();
+        for (var i = 0; i < 3; i++)
+        {
+            values[i].State = state;
+            values[i].PlayerId = player.Id;
+            values[i].Order = i + 1;
+        }
+    }
+
+    /// <summary>
+    /// Starts game
+    /// </summary>
+    private async Task StartGame(bool value)
+    {
+        loading = new(true);
+
+        //Check if this is the last player joining.
+        //If So create deck and devide cards
+        if (game.Players.Where(p => p.Joint == false).Count() == 1)
+        {
+            //If the last player doesn't join remove them frome the game
+            if (!value) game.Players.Remove(player);
+
+            //Creates deck and divid them over the players
+            var cards = _gameService.CreateDeck(game);
+            game.Players.ForEach(p =>
+            {
+                //Hand
+                SetPlayerCards(p, cards, State.Hand);
+
+                //Open
+                SetPlayerCards(p, cards, State.Open);
+
+                //Closed
+                SetPlayerCards(p, cards, State.Closed);
+            });
+
+            var result = await _gameService.AddCards(cards);
+            if (!result.Success)
+            {
+                error = "Couldn't start game";
+                loading = new(false);
+
+                return;
+            }
+
+            game.Cards = cards;
+        }
+
+        //Removes player from game
+        if (!value)
+        {
+            await RemovePlayer();
+            loading = new(false);
+
+            return;
+        }
+
+        player.Joint = true;
+
+        //Updates player & game
+        await UpdatePlayer();
+
+        loading = new(false);
+    }
+
+    /// <summary>
+    ///Switched cards
+    /// </summary>
+    private async Task SwitchedCards()
+    {
+        //Check if this is the last player switching cards
+        //If so then determine who is the first and next player
+        var players = game.Players.Where(p => p.SwitchedCards == false).ToList();
+        var isLastPlayer = players != null && players.Count() == 1 && players[0].Id == player.Id;
+
+        if (isLastPlayer)
+        {
+            //Sets the current player with the lowest card
+            SetTurn(game.Cards.Where(c => c.State == State.Hand).ToList(), game.Players, Turn.Current);
+
+            if (game.Players.Count > 2)
+            {
+                //If there are three or more players check witch player is the next one
+                var firstPlayer = game.Players.FirstOrDefault(p => p.Turn == Turn.Current);
+                List<Models.Player> p = new();
+
+                if (firstPlayer.Position == game.Players.Count())
+                {
+                    p.Add(game.Players.FirstOrDefault(p => p.Position == 1));
+                    p.Add(game.Players.FirstOrDefault(p => p.Position == firstPlayer.Position - 1));
+                }
+                else if (firstPlayer.Position == 1)
+                {
+                    p.Add(game.Players.FirstOrDefault(p => p.Position == 2));
+                    p.Add(game.Players.FirstOrDefault(p => p.Position == game.Players.Count()));
+                }
+                else
+                {
+                    p.Add(game.Players.FirstOrDefault(p => p.Position == firstPlayer.Position + 1));
+                    p.Add(game.Players.FirstOrDefault(p => p.Position == firstPlayer.Position - 1));
+                }
+
+                //Get the cards from the posibel next players
+                List<Models.Card> cards = new();
+                p.ForEach(p => { cards.AddRange(p.Cards); });
+
+                //Sets the next player with the next lowest card
+                SetTurn(cards, p, Turn.Next);
+            }
+            else
+            {
+                //If there are just two players set the next player turn
+                game.Players.ForEach(p => { if (p.Turn != Turn.Current) p.Turn = Turn.Next; });
+            }
+
+            var resultCard = await _gameService.UpdateCards(game.Cards);
+            if (!resultCard.Success)
+            {
+                //Error
+                return;
+            }
+        }
+
+        //Update player
+        game.Players.ForEach(p => { if (p.Id == player.Id) p.SwitchedCards = true; });
+        var resultPlayers = await _gameService.UpdatePlayers(game.Players);
+        if (!resultPlayers.Success)
+        {
+            //Error
+            return;
+        }
+
+        if (isLastPlayer) await UpdateGame();
+        else await UpdatePlayers();
+    }
+
+    /// <summary>
+    ///Sets turn
+    /// </summary>
+    private void SetTurn(List<Models.Card> cards, List<Models.Player> players, Turn turn)
+    {
+        int min = cards.Where(c => c.Value != 1 && c.Value != 2 && c.Value != 7 && c.Value != 8 && c.Value != 10 && c.State == State.Hand).Min(c => c.Value);
+        foreach (var symbol in symbols)
+        {
+            var lowestCard = cards.Where(c => c.Value == min && c.Symbol == symbol).ToList();
+            if (lowestCard == null || lowestCard.Count == 0) continue;
+
+            //There is one player with the lowest symbol
+            game.Players.ForEach(p =>
+                {
+                    // Sets current or next player
+                    if (p.Id == lowestCard.First().PlayerId) p.Turn = turn;
+
+                    // Sets previous player
+                    if (p.Id == players.FirstOrDefault(pl => pl.Id != lowestCard.First().PlayerId).Id && players.Count == 2 && turn == Turn.Next) p.Turn = Turn.Previous;
+                });
+
+            return;
+            //TODO: More than one players have the same amount of lowest cards. Add this when there is suport for multiple decks
+        }
+    }
+
+    /// <summary>
+    /// Card dropped
+    /// </summary>
+    [JSInvokable]
+    public static void CardDropped(string draggableCardId, string droppableCardId)
+    {
+        //Sets draggable and droppable card id
+        SessionGame.DraggableCardId = draggableCardId;
+        SessionGame.DroppableCardId = droppableCardId;
+
+        //Activates card dropped event handeler
+        SessionGame.CardDropped();
+    }
+
+    /// <summary>
+    /// Card dropped
+    /// </summary>
+    public async void CardDropped(object sender, EventArgs e)
+    {
+        var draggableCard = game.Cards.FirstOrDefault(c => c.Id == new Guid(SessionGame.DraggableCardId));
+        var droppableCard = game.Cards.FirstOrDefault(c => c.Id == new Guid(SessionGame.DroppableCardId));
+
+        // Player can swith there cards
+        if (!player.SwitchedCards)
+        {
+            Models.Card newDraggableCard = new(draggableCard.Value, draggableCard.Symbol, droppableCard.State, draggableCard.GameId, player.Id, droppableCard.Order);
+            Models.Card newDroppableCard = new(droppableCard.Value, droppableCard.Symbol, draggableCard.State, droppableCard.GameId, player.Id, draggableCard.Order);
+
+            //TODO: Some how updating the cards via there reference doesn't work, fix this in the future
+            game.Cards.Remove(draggableCard);
+            game.Cards.Remove(droppableCard);
+
+            game.Cards.AddRange(new List<Models.Card>() { newDraggableCard, newDroppableCard });
+
+            this.StateHasChanged();
+            return;
+        }
+
+        // Make this edit a list of cards
+        game.Cards.ForEach(c =>
+        {
+            if (c.Id == draggableCard.Id)
+            {
+                c.Order = game.Pile.Count() + 1;
+                c.State = player.Id == game.Current.Id ? State.Pile : State.Blocked;
+            }
+        });
+
+        // Checks game rules
+        game.Rule = player.Id == game.Current.Id ? GetGameRule() : Rule.Blocked;
+
+        // If the game is blocked make the card also blocked
+        game.Cards.ForEach(c => { if (c.Id == draggableCard.Id && game.Rule == Rule.Blocked) c.State = State.Blocked; });
+
+        // If the rule is not blocked and the stack is not null this player gets a new card
+        if (game.Rule != Rule.Blocked && game.Stack != null && game.Stack.Count > 0 && player.Hand?.Count < 3)
+        {
+            var cardsAdded = 3 - player.Hand.Count;
+            game.Cards.ForEach(c =>
+            {
+                if (c.State == State.Stack && cardsAdded < 3)
+                {
+                    c.State = State.Hand;
+                    c.PlayerId = player.Id;
+
+                    cardsAdded = cardsAdded + 1;
+                }
+            });
+        }
+
+        // When all cards are gone the player is out off the game
+        if (game.Rule != Rule.Blocked && player.Hand.Count == 0 && player.Open.Count == 0 && player.Closed.Count == 0)
+        {
+            int position = player.Position;
+            game.Players.ForEach(p => { if (p.Id == player.Id) p.Position = 0; if (p.Position > position) p.Position = p.Position - 1; });
+        }
+
+        // Sets next turn
+        if (game.Rule == Rule.Next) await NextTurn();
+
+        // Updates cards
+        var resultCard = await _gameService.UpdateCards(game.Cards);
+        if (!resultCard.Success)
+        {
+            //Error
+            return;
+        }
+
+        // When the player hand is 0 show there open hand
+        if (player.Hand?.Count == 0) isOpenVisibel = true;
+
+        await UpdateGame();
+        this.StateHasChanged();
+    }
+
+    /// <summary>
+    /// Sets the next turn
+    /// </summary>
+    private async Task NextTurn()
+    {
+        var players = game.Players.Where(p => p.Position != 0).OrderByDescending(p => p.Position).ToList();
+        if (players.Count < 3)
+        {
+            game.Players.ForEach(p =>
+            {
+                // Next Player becomes the current player
+                if (p.Turn == Turn.Next) p.Turn = Turn.Current;
+
+                // Current player becomes next player
+                else if (p.Turn == Turn.Current || p.Turn == Turn.Previous || p.Turn == Turn.None) p.Turn = Turn.Next;
+            });
+        }
+        else
+        {
+            // Current is new previous player
+            var previous = players.FirstOrDefault(p => p.Turn == Turn.Current);
+            if (previous == null) previous = players.FirstOrDefault(p => p.Turn == Turn.None);
+
+            // Next is new current player
+            var current = players.FirstOrDefault(p => p.Turn == Turn.Next);
+
+            // Check if turns are descending or ascending to get next player
+            // Origin: https://stackoverflow.com/a/57449290/6572268
+            List<Models.Player> nextPrev = new()
+            {
+                players.SkipWhile(p => p != current).Skip(1).DefaultIfEmpty(players[0]).FirstOrDefault(),
+                players.TakeWhile(p => p != current).DefaultIfEmpty(players[players.Count - 1]).LastOrDefault()
+            };
+
+            var next = nextPrev.FirstOrDefault(p => players.Count() == 3 ? p.Turn == Turn.Previous : p.Turn == Turn.None);
+            game.Players.ForEach(p =>
+            {
+                p.Turn = p.Id == previous.Id ? Turn.Previous :
+                         p.Id == current.Id ? Turn.Current :
+                         p.Id == next.Id ? Turn.Next : Turn.None;
+            });
+        }
+
+        // Updates all players in the game
+        var result = await _gameService.UpdatePlayers(game.Players);
+        if (!result.Success)
+        {
+            //error
+            return;
+        }
+    }
+
+    /// <summary>
+    /// Sets the turn one step back
+    /// </summary>
+    private async Task PreviousTurn()
+    {
+        var players = game.Players.Where(p => p.Position != 0).OrderByDescending(p => p.Position).ToList();
+        if (players.Count < 3)
+        {
+            game.Players.ForEach(p =>
+            {
+                // Next Player becomes the current player
+                if (p.Turn == Turn.Next) p.Turn = Turn.Current;
+
+                // Current player becomes next player
+                else if (p.Turn == Turn.Current || p.Turn == Turn.Previous || p.Turn == Turn.None) p.Turn = Turn.Next;
+            });
+        }
+        else
+        {
+            // Current is new next player
+            var next = players.FirstOrDefault(p => p.Turn == Turn.Current);
+
+            // Previous is new current player
+            var current = players.FirstOrDefault(p => p.Turn == Turn.Previous);
+
+            // Check if turns are descending or ascending to get previous player
+            // Origin: https://stackoverflow.com/a/57449290/6572268
+            List<Models.Player> nextPrev = new()
+            {
+                players.SkipWhile(p => p != current).Skip(1).DefaultIfEmpty(players[0]).FirstOrDefault(),
+                players.TakeWhile(p => p != current).DefaultIfEmpty(players[players.Count - 1]).LastOrDefault()
+            };
+
+            var previous = nextPrev.FirstOrDefault(p => players.Count() == 3 ? p.Turn == Turn.Next : p.Turn == Turn.None);
+            game.Players.ForEach(p =>
+            {
+                p.Turn = p.Id == previous.Id ? Turn.Previous :
+                         p.Id == current.Id ? Turn.Current :
+                         p.Id == next.Id ? Turn.Next : Turn.None;
+            });
+        }
+
+        // Updates all players in the game
+        var result = await _gameService.UpdatePlayers(game.Players);
+        if (!result.Success)
+        {
+            //error
+            return;
+        }
+
+        await UpdateCards();
+        this.StateHasChanged();
+    }
+
+    /// <summary>
+    /// Gets the game rules
+    /// </summary>
+    /// <returns></returns>
+    private Rule GetGameRule()
+    {
+        // A Player played before there turn
+        if (game.Pile.Any(c => c.State == State.Blocked)) return Rule.Blocked;
+
+        // Pile is empty
+        if (game.Pile.Count == 0) return Rule.Next;
+
+        // The card(s) on top of the pile that (all) belong to the same player
+        List<Models.Card> currentCards = new();
+
+        // The cards befour the top card(s)
+        List<Models.Card> previousCards = new();
+
+        // First none transparent card
+        Models.Card previousCard = null;
+
+        foreach (var card in game.Pile)
+        {
+            if (currentCards.Count == 0 || previousCards.Count == 0 && currentCards[0].PlayerId == card.PlayerId)
+            {
+                currentCards.Add(card);
+                continue;
+            }
+
+            if (previousCards.Count == 0 || previousCards[0].PlayerId == card.PlayerId)
+            {
+                if (card.Value == 1 || card.Value == 8) continue;
+
+                previousCards.Add(card);
+                continue;
+            }
+
+            if (previousCard != null) break;
+        }
+
+        if (previousCards != null && previousCards.Count > 0)
+        {
+            //If first previous card is not transperent
+            if (previousCards[0].Value != 1 || previousCards[0].Value != 8) previousCard = previousCards[0];
+
+            // Order lists by descending
+            if (currentCards.Count != 0) currentCards = currentCards.OrderByDescending(c => c.Order).ToList();
+            if (previousCards.Count != 0) previousCards = previousCards.OrderByDescending(c => c.Order).ToList();
+        }
+
+        return GetCardRule(currentCards, previousCard);
+    }
+
+    /// <summary>
+    /// Gets card rules
+    /// </summary>
+    /// <param name="currentCards"></param>
+    /// <param name="previousCard"></param>
+    /// <returns></returns>
+    private Rule GetCardRule(List<Models.Card> currentCards, Models.Card previousCard)
+    {
+        // Top card value
+        var value = currentCards[0].Value;
+
+        // Zeven
+        // Block pile if the card is the wrong value
+        if (previousCard != null && previousCard.Value == 7 && previousCard.Seven != Seven.None)
+        {
+            var lower = value > 7 && previousCard.Seven == Seven.Lower;
+            var higher = value < 7 && previousCard.Seven == Seven.Higher;
+
+            if (lower || higher) return Rule.Blocked;
+        }    
+
+        // Four of a kind the pile will be emptied
+        List<Models.Card> cards = new();
+        foreach (var card in game.Pile)
+        {
+            if (cards.Count == 0 || cards[0].Value == card.Value || card.Value == 8 || card.Value == 1) cards.Add(card);
+            else break;
+        }
+
+        // Gets most occuring cards.
+        // Origin: https://stackoverflow.com/a/28666444/6572268
+        var objs = cards.GroupBy(c => c.Value)
+                        .Select(group => new { pi = group.Key, Count = group.Count() })
+                        .OrderByDescending(t => t.Count)
+                        .ToList();
+
+        // Check if four of a kind
+        if (objs != null && objs[0].Count >= 4) return Rule.Clear;
+
+        // None spacail card
+        // It's not posible to play a lower card on a higher cards
+        if (value != 1 && value != 2 && value != 7 && value != 8 && value != 10 && previousCard != null && previousCard.Value > value && previousCard.Value != 7) return Rule.Blocked;
+
+        // Joker & 8
+        // The previous none transparant card is valid
+        // Last card can't be transparant
+        if ((value == 8 || value == 1) && player.Hand?.Count == 0 && game.Pile?.Count == 0) return Rule.Blocked;
+
+        // Two
+        // Two can't be placed on a 7 when higher is called
+        if (value == 2 && currentCards[0].Seven == Seven.Higher) return Rule.Blocked;
+
+        //TODO: this breakes when two or more tens are placed when the pile is empty
+        // Ten
+        // Pile will be emptied
+        if (value == 10 && game.Pile.Count > 1 && previousCard != null && previousCard.Value < value) return Rule.Clear;
+
+        // Zeven
+        // Higher or lower than zeven should be called
+        if (value == 7 && currentCards[0].Seven == Seven.None) return previousCard == null ? Rule.Seven : previousCard.Color != currentCards[0].Color ? Rule.Blocked : Rule.Seven;
+
+        return Rule.Next;
+    }
+
+    /// <summary>
+    /// Ends the shithead game
+    /// </summary>
+    private async void EndGame()
+    {
+        loading = new(true);
+
+        //Removes this player from the game and the last player will allso remove the game
+        var result = await _gameService.RemovePlayer(player);
+        if (!result.Success)
+        {
+            error = "Couldn't end game.";
+            loading = new(true);
+
+            return;
+        }
+
+        // Clear local game data
+        SessionGame.Data = null;
+
+        loading = new(false);
+
+        // Back to home
+        LoadPage("");
+    }
+
+    /// <summary>
+    /// Dispose connection
+    /// </summary>
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection != null) await hubConnection.DisposeAsync();
+    }
+
+    /// <summary>
+    /// Loads another page
+    /// </summary>
+    private void LoadPage(string name) => _navigationManager.NavigateTo($"/{name}");
+
+    /// <summary>
+    /// On after render async
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        //Initialize draggable
+        await _jsRuntime.InvokeAsync<string>("initializeDraggable");
+
+        //Initialize droppable
+        await _jsRuntime.InvokeAsync<string>("initializeDroppable");
+
+        //Checks game rules if null
+        if (game.Rule == null) game.Rule = GetGameRule();
+        else if (game.Current != null && game.Current.Id == player.Id && !player.HandChecked && game.Pile != null && game.Pile.Count > 0)
+        {
+            List<Rule> rules = new();
+            Models.Card previousCard = new();
+
+            foreach (var card in game.Pile)
+            {
+                //Set first none transparent card as previous card
+                if (card.Value == 8 || card.Value == 1) continue;
+                previousCard = card;
+                break;
+            }
+
+            var cards = player.Hand?.Count > 0 ? player.Hand :
+                        player.Open?.Count > 0 ? player.Open :
+                        player.Closed?.Count > 0 ? new() { player.Closed[0] } :
+                        null;
+
+            // If true then this player is done playing
+            if (cards == null) return;
+            for (var i = 0; i < cards.Count(); i++) rules.Add(GetCardRule(new List<Models.Card> { cards[i] }, previousCard));
+
+            //Check the rule and se if there is a card that can be played
+            if (rules.All(r => r == Rule.Blocked || r == Rule.GetIt)) game.Rule = Rule.GetIt;
+            player.HandChecked = true;
+
+            Console.WriteLine(string.Join("\t", rules));
+            this.StateHasChanged();
+        }
+
+        if (!firstRender) return;
+
+        if (player.Hand?.Count == 0) isOpenVisibel = true;
+    }
+}

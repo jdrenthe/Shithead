@@ -1,0 +1,40 @@
+﻿@page
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<!DOCTYPE html>
+<html lang="en-US">
+<head prefix="og: https://ogp.me/ns#">
+
+    <!-- Meta data -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <meta name="theme-color" content="#FFF" />
+    <meta name="description" content="" />
+
+    <title>Shitead</title>
+
+    <base href="/" />
+
+    <link rel="canonical" href="https://www.shithead.games/" />
+
+    <!-- Custom style -->
+    <link href="css/shithead.beta-0.0.0.min.css" rel="stylesheet" />
+
+    <link href="manifest.json" rel="manifest" />
+</head>
+<body>
+    <component type="typeof(Shithead.Client.App)" render-mode="WebAssemblyPrerendered" />
+
+    <script defer src="_framework/blazor.webassembly.js"></script>
+    <script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });</script>
+
+    <!-- Javascript -->
+    <script defer src="js/jquery.min.js"></script>
+    <script defer src="js/bootstrap.5.1.3.min.js"></script>
+    <script defer src="js/jqueryui.1.13.2.min.js"></script>
+    <script defer src="js/jqueryui.touch.punch.0.2.3.js"></script>
+
+    <!-- Custom js -->
+    <script defer src="js/shithead.beta-0.0.0.min.js"></script>
+</body>
+</html>

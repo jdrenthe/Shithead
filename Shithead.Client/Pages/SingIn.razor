@@ -1,0 +1,248 @@
+﻿@page "/singin";
+@page "/singin/{url}";
+@page "/verify/{emailTokenStart}/{emailTokenEnd}/{passwordBase64}/{emailBase64}";
+@page "/password/reset/{passwordTokenStart}/{passwordTokenEnd}/{emailBase64}";
+
+@using Microsoft.IdentityModel.Tokens;
+
+@layout Shithead.Client.Shared.Layouts.Empty;
+
+@inject IUserApiService _userService;
+@inject NavigationManager _navigationManager;
+
+<section id="singIn" class="container py-5">
+    @if (string.IsNullOrEmpty(emailToken))
+    {
+        <EditForm Model="@model" OnValidSubmit="@(async () => await HandleValidSubmit())" class="form">
+            <DataAnnotationsValidator />
+            <div class="row d-flex justify-content-center">
+                <div class="col-md-6">
+
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="text-center p-4">
+                                <h2>Login</h2>
+                                <p class="text-muted">@(string.IsNullOrEmpty(passwordToken) ? "To find out how good your game is!" : "To create a new password")</p>
+                                <hr />
+                            </div>
+                        </div>
+                    </div>
+                     <div class="row">
+                        <div class="col-12">
+                            <div class="mt-4">
+                                <InputText @bind-Value="model.Email" class="form-control" type="text" placeholder="email" />
+                                <ValidationMessage For="() => model.Email" />
+                            </div>
+                            <div class="mt-4">
+                                @{
+                                    var placeholder = string.IsNullOrEmpty(passwordToken) ? "password" : "new password";
+                                }
+                                <InputText @bind-Value="model.Password" class="form-control" type="password" placeholder="@placeholder" />
+                                <ValidationMessage For="() => model.Password" />
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(error))
+                    {
+                        <div class="row">
+                            <div class="col-12">
+                                <label>@error</label>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="row mt-4">
+                        <div class="d-grid gap-4 col-12 mx-auto">
+                            <button class="btn btn-outline gradient @loading.Css" disabled="@loading.Value" type="submit">
+                                <span><span>Log in</span></span>
+                            </button>
+                            <div class="text-center">
+                                <p class="text-muted mt-2" @onclick="@(() => LoadPage("password/reset"))">
+                                    Forgot your password?
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row text-center">
+                        <div class="col-12">
+                            <hr />
+                            <p class="text-muted">
+                                No account, <a @onclick="@(() => LoadPage(string.IsNullOrEmpty(url) ? "singup" : $"singup/{url}"))" class="link">Register</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </EditForm>
+    }
+    else
+    {
+        <div class="row d-flex justify-content-center">
+            <div class="col-md-6">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="text-center p-4">
+                            <h2>@(activated ? "Activated" : "Loading...")</h2>
+                            <p class="text-muted">@(activated ? "Your account is now active" : "Activating your account")</p>
+                            <hr />
+                        </div>
+                    </div>
+                </div>
+
+                @if (activated)
+                {
+                    <div class="row mt-4">
+                        <div class="d-grid gap-4 col-12 mx-auto">
+                            <button @onclick="@(() => LoadPage(string.IsNullOrEmpty(url) ? "friends" : redirectUrl))" class="btn btn-primary @loading.Css" type="button">Home</button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    /// <summary>
+    /// Url
+    /// </summary>
+    [Parameter]
+    public string url { get; set; }
+
+    /// <summary>
+    /// Url
+    /// </summary>
+    private string redirectUrl => Base64UrlEncoder.Decode(url);
+
+    /// <summary>
+    /// Email token start
+    /// </summary>
+    [Parameter]
+    public string emailTokenStart { get; set; }
+
+    /// <summary>
+    /// Email token end
+    /// </summary>
+    [Parameter]
+    public string emailTokenEnd { get; set; }
+
+    /// <summary>
+    /// Email token
+    /// </summary>
+    public string emailToken => emailTokenStart + emailTokenEnd;
+
+    /// <summary>
+    /// Password token start
+    /// </summary>
+    [Parameter]
+    public string passwordTokenStart { get; set; }
+
+    /// <summary>
+    /// Password token end
+    /// </summary>
+    [Parameter]
+    public string passwordTokenEnd { get; set; }
+
+    /// <summary>
+    /// Password token
+    /// </summary>
+    public string passwordToken => passwordTokenStart + passwordTokenEnd;
+
+    /// <summary>
+    /// Password token
+    /// </summary>
+    [Parameter]
+    public string passwordBase64 { get; set; }
+
+    /// <summary>
+    /// Email token
+    /// </summary>
+    [Parameter]
+    public string emailBase64 { get; set; }
+
+    /// <summary>
+    /// Activated
+    /// </summary>
+    private bool activated { get; set; }
+
+    /// <summary>
+    /// Model
+    /// </summary>
+    private Models.SingIn model = new();
+
+    /// <summary>
+    /// Error
+    /// </summary>
+    private string error { get; set; }
+
+    /// <summary>
+    /// Loading
+    /// </summary>
+    private Loading loading { get; set; } = new(false);
+
+    /// <summary>
+    /// On initialized
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        // Set password token for new password
+        if (!string.IsNullOrEmpty(passwordToken))
+        {
+            model.Email = Base64UrlEncoder.Decode(emailBase64);
+            model.PasswordToken = passwordToken;
+        }
+    }
+
+    /// <summary>
+    /// When the user sumbits there data we sing them in
+    /// </summary>
+    private async Task HandleValidSubmit()
+    {
+        loading = new(true);
+        error = null;
+
+        var result = await _userService.SingIn(model);
+        if (!result.Success)
+        {
+            error = "It's not working what you are doing";
+            loading = new(false);
+
+            return;
+        }
+
+        await _userService.SetUser();
+        loading = new(false);
+
+        LoadPage(string.IsNullOrEmpty(url) ? "friends" : redirectUrl);
+    }
+
+    /// <summary>
+    /// Loads another page
+    /// </summary>
+    private void LoadPage(string name) => _navigationManager.NavigateTo($"/{name}");
+
+    /// <summary>
+    /// On after render async
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        // Activate user account
+        if (!string.IsNullOrEmpty(emailToken))
+        {
+            model.Password = passwordBase64;
+            model.Email = emailBase64;
+
+            var result = await _userService.SingIn(model);
+            if (!result.Success)
+            {
+                error = "It's not working what you are doing";
+                return;
+            }
+
+            activated = true;
+        }
+    }
+}

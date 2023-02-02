@@ -1,0 +1,174 @@
+﻿@page "/invite";
+@page "/invite/{id}";
+
+@layout Shithead.Client.Shared.Layouts.Empty;
+
+@using Microsoft.IdentityModel.Tokens;
+
+@inject IJSRuntime _jsRuntime;
+@inject IUserApiService _userService;
+@inject NavigationManager _navigationManager;
+
+<section id="invite" class="container justify-content-center py-5">
+    @if (friend != null)
+    {
+        <div class="row">
+            <div class="col-12">
+                <img loading="lazy" src="@friend.Image" class="ratio ratio-1x1 user-large" alt="friend image" />
+                <label>@friend.Surname</label>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <p>Has invite you to become friends.</p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                @if (SessionUser.IsNull)
+                {
+                    //User is logged-ou or doesn't have an account
+                    <button @onclick="@(() => LoadPage($"singin/{Base64UrlEncoder.Encode($"invite/{id}")}"))">
+                        Login
+                    </button>
+                }
+                else
+                {
+                    //User is logged-in so we can add the friend
+                    <button @onclick="@(async () => await AddFriend())" class="btn @loading.Css">Accept</button>
+                }
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <label>@error</label>
+        }
+    }
+    else if (string.IsNullOrEmpty(id))
+    {
+        @*QR Code*@
+        <div class="row justify-content-center">
+            <img loading="lazy" src="@qr" class="col-md-4 py-5" alt="QR-code tho invite friends" />
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-md-4 text-center">
+                <hr />
+                <p>Let your friends scan the QR-code <br /> to invite them to your friend list.</p>
+                <button @onclick="@(() => LoadPage("friends"))" type="button" class="btn btn-secondary">Close</button>
+            </div>
+        </div>
+    }
+</section>
+
+@code {
+    /// <summary>
+    /// Id
+    /// </summary>
+    [Parameter]
+    public string id { get; set; }
+
+    /// <summary>
+    /// Friend id
+    /// </summary>
+    private Guid? friendId => !string.IsNullOrEmpty(id) ? new Guid(Base64UrlEncoder.Decode(id)) : null;
+
+    /// <summary>
+    /// Friend
+    /// </summary>
+    private Models.User friend { get; set; }
+
+    /// <summary>
+    /// QR code
+    /// </summary>
+    private string qr { get; set; }
+
+    /// <summary>
+    /// Loading
+    /// </summary>
+    private Loading loading { get; set; } = new(false);
+
+    /// <summary>
+    /// Error
+    /// </summary>
+    private string error { get; set; }
+
+    /// <summary>
+    /// Adds friend
+    /// </summary>
+    private async Task AddFriend()
+    {
+        if (!friendId.HasValue)
+        {
+            error = "Friend not found";
+            return;
+        }
+
+        loading = new(true);
+        error = null;
+
+        var result = await _userService.AddFriends(new()
+        {
+            new()
+            {
+                Id = Guid.NewGuid(),
+                UserId = SessionUser.Data.Id,
+                FriendId = friendId.Value
+            },
+            new()
+            {
+                Id = Guid.NewGuid(),
+                UserId = friendId.Value,
+                FriendId = SessionUser.Data.Id
+            },
+        });
+
+        if (!result.Success)
+        {
+            error = "Couldn't add friend";
+            loading = new(false);
+
+            return;
+        }
+
+        await _userService.SetUser();
+
+        loading = new(false);
+        LoadPage("friends");
+    }
+
+    /// <summary>
+    /// Generates QR-code
+    /// </summary>
+    private async Task GenerateQR()
+    {
+        var result = await _userService.GeneratQR($"{_navigationManager.BaseUri}invite/{Base64UrlEncoder.Encode(SessionUser.Data.Id.ToString())}");
+        qr = result.Success? result.Content: null;
+    }
+
+    /// <summary>
+    /// Loads another page
+    /// </summary>
+    public void LoadPage(string name) => _navigationManager.NavigateTo($"/{name}");
+
+    /// <summary>
+    /// On after render async
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (string.IsNullOrEmpty(qr) && string.IsNullOrEmpty(id)) 
+        { 
+            await GenerateQR();
+            this.StateHasChanged();
+        }
+
+        if (!friendId.HasValue) return;
+
+        var result = await _userService.GetUserById(friendId.Value);
+        if (!result.Success) LoadPage("404");
+
+        friend = result.Content;
+        this.StateHasChanged();
+    }
+}

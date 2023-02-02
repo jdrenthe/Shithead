@@ -1,0 +1,288 @@
+﻿@page "/friends";
+
+@using Shithead.Shared.Utilities.Enums;
+@using Microsoft.IdentityModel.Tokens;
+@using Shithead.Shared.Utilities;
+
+@layout Shithead.Client.Shared.Layouts.NoTabes;
+
+@inject IUserApiService _userService;
+@inject IJSRuntime _jsRuntime;
+@inject NavigationManager _navigationManager;
+@inject IGameApiService _gameService;
+@inject INotificationApiService _notificationService;
+
+<section id="friends" class="container-sm py-5">
+    @if (!SessionUser.IsNull && SessionUser.Data.Friends != null && SessionUser.Data.Friends.Count > 0)
+    {
+        <div class="row d-flex justify-content-center">
+            <div class="col-md-6">
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        @foreach (var index in SessionUser.Data.Friends.Distinct().ToList())
+                        {
+                            var friend = index.Friend;
+                            <div @onclick="@(() => { if (users.Any(u => u.Id == friend.Id)) users.Remove(friend); else if (users.Count < 4) users.Add(friend); })" class="d-flex m-2">
+                                <div class="@(users.Any(u => u == friend) ? "img-ring" : string.Empty)">
+                                    <img loading="lazy" src="@friend.Image" alt="Friend image" class="ratio ratio-1x1 user-medium" />
+                                </div>
+                                <h3 class="p-2">@friend.UserName</h3>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-12 text-center">
+                        <hr />
+                        <p>Select up to 4 of your friends to start a game of shithead</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <p>First make friends then play a game of shithead</p>
+        </div>
+    }
+
+    @*Start Shithead game*@
+    @if (users != null && users.Count > 0)
+    {
+        <div class="d-flex position-absolute bottom-0 start-0">
+            <div class="p-2">
+                <button class="btn" data-bs-toggle="modal" data-bs-target="#addGame" type="button">Shithead</button>
+            </div>
+        </div>
+    }
+
+    <div class="d-flex position-absolute bottom-0 end-0">
+        @*Invite friends*@
+        <div class="p-2">
+            <button @onclick="@(async () => { await _jsRuntime.InvokeAsync<string>("share","How good is your game?","Lets find out on in a game of Shithead",url, "#shareModel"); })" class="btn" type="button">
+                +
+            </button>
+            <button @onclick="@(() => LoadPage("invite"))" class="btn @loading.Css" type="button">
+                QR
+            </button>
+        </div>
+    </div>
+</section>
+
+@*Start game modal*@
+<div class="modal fade" id="addGame" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="addGameLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <EditForm Model="@game" OnValidSubmit="@(async () => await AddGame())" class="form modal-content">
+            <DataAnnotationsValidator />
+            <div class="modal-header">
+                <h5 class="modal-title" id="addGameLabel">Start Shithead</h5>
+            </div>
+            <div class="modal-body">
+                <div class="row justify-content-center">
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-12">
+                                <h4>Deacks</h4>
+                                <InputSelect @bind-Value="game.Deacks" type="text" class="form-select" placeholder="decks" disabled="true">
+                                    <option value="@(1)">1</option>
+                                    <option value="@(2)">2</option>
+                                </InputSelect>
+                            </div>
+                            <div class="col-12">
+                                <h4>Trun time</h4>
+                                <InputSelect @bind-Value="game.TurnTime" type="text" class="form-select" placeholder="turn time" disabled="true">
+                                    <option value="@(TurnTime.NotSet)">Not set</option>
+                                    <option value="@(TurnTime.Sixty)">60</option>
+                                    <option value="@(TurnTime.OneTwenty)">120</option>
+                                    <option value="@(TurnTime.FourTwenty)">420</option>
+                                </InputSelect>
+                            </div>
+                            @*TODO// Add remove cards option*@
+                        </div>
+                        <div class="row">
+                            <div class="col-12 text-center">
+                                <hr />
+                                <p>This will be the place where you can change the settings for the game, only not just jet. Select 'start' to play the shithead game.</p>
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(error))
+                        {
+                            <div class="row">
+                                <div class="col-12">
+                                    <label>@error</label>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-outline gradient @loading.Css" disabled="@loading.Value" type="submit">
+                    <span><span>Start</span></span>
+                </button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@*Inter app share modal*@
+<div class="modal fade share-dialog modal-fullscreen" id="share" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="sharelabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="sharelabel">Deel deze link</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" value="@_navigationManager">
+                    <button @onclick="@(async () => { await _jsRuntime.InvokeAsync<string>("copyToClipboard ", url); })" class="btn btn-primary" type="button">
+                        <i class="icon-copy1" />
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// Game
+    /// </summary>
+    private Models.Game game { get; set; }
+
+    /// <summary>
+    /// Users
+    /// </summary>
+    private List<Models.User> users { get; set; }
+
+    /// <summary>
+    /// Invite friend
+    /// </summary>
+    private string url => $"invite/{Base64UrlEncoder.Encode(SessionUser.Data.Id.ToString())}";
+
+    /// <summary>
+    /// Loading
+    /// </summary>
+    private Loading loading { get; set; } = new(false);
+
+    /// <summary>
+    /// Error
+    /// </summary>
+    private string error { get; set; }
+
+    /// <summary>
+    /// On initialized
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        game = new() { Deacks = 1, TurnTime = TurnTime.NotSet };
+        users = new();
+    }
+
+    /// <summary>
+    /// Add friend to game
+    /// </summary>
+    private async Task AddGame()
+    {
+        error = null;
+        loading = new(true);
+
+        // Create game
+        game = new()
+            {
+                Id = Guid.NewGuid(),
+                StartTime = new(),
+                Deacks = game.Deacks,
+                TurnTime = game.TurnTime,
+                Players = null,
+                Cards = null,
+            };
+
+        var resultGame = await _gameService.AddGame(game);
+        if (!resultGame.Success)
+        {
+            error = "Couldn't add friend to a game";
+            loading = new(false);
+
+            return;
+        }
+
+        // Adds friends to game
+        List<Models.Player> players = new();
+        users.ForEach(u =>
+            {
+                players.Add(new()
+                    {
+                        Id = Guid.NewGuid(),
+                        Joint = false,
+                        SwitchedCards = false,
+                        Position = 0,
+                        Turn = Turn.None,
+                        UserId = u.Id,
+                        GameId = game.Id
+                    });
+            });
+
+        // Adds host to game
+        players.Add(new()
+            {
+                Id = Guid.NewGuid(),
+                Joint = true,
+                SwitchedCards = false,
+                Position = 0,
+                Turn = Turn.None,
+                UserId = SessionUser.Data.Id,
+                GameId = game.Id
+            });
+
+        // Sets a random position on each player
+        players = _gameService.SetPositionPlayers(players);
+
+        var resultPlayer = await _gameService.AddPlayers(players);
+        if (!resultPlayer.Success)
+        {
+            error = "Couldn't create a game";
+            loading = new(false);
+
+            return;
+        }
+
+        List<Models.Email> emails = new();
+        users.ForEach(u =>
+        {
+            if (u.Id != SessionUser.Data.Id)
+            {
+                emails.Add(new(adress: u.Email,
+                               title: $"{SessionUser.Data.UserName} has intvited you for a game of shithead",
+                               subject: "Shithead game invit",
+                               name: u.UserName,
+                               html: new BlazorTemplater.ComponentRenderer<Shithead.Client.Emails.GameInvite>()
+                                                        .Set(gi => gi.user, SessionUser.Data)
+                                                        .Set(gi => gi.url, $"{_navigationManager.BaseUri}game")
+                                                        .Render()));
+            }
+        });
+
+        var resultEmailCalculation = await _notificationService.SendEmails(emails);
+        if (!resultPlayer.Success)
+        {
+            error = "Couldn't send emails";
+            loading = new(false);
+
+            return;
+        }
+
+        loading = new(false);
+
+        await _jsRuntime.InvokeAsync<string>("closeModal", "#addGame");
+        LoadPage("game");
+    }
+
+    /// <summary>
+    /// Loads another page
+    /// </summary>
+    public void LoadPage(string name) => _navigationManager.NavigateTo($"/{name}");
+}

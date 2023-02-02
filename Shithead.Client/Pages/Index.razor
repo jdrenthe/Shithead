@@ -1,0 +1,234 @@
+﻿@page "/";
+@layout Shithead.Client.Shared.Layouts.Main;
+
+@inject NavigationManager _navigationManager;
+@inject IJSRuntime _jsRuntime;
+
+<header id="header" class="container-fluid vh-100">
+    <div class="row h-100">
+        <div class="col-lg-7 my-auto">
+            <div class="mx-auto ">
+                <h1 class="mb-5 color-white">Shithead is the game that will let you fool your friends on mobile, or anything else!</h1>
+                <button @onclick="@(() => LoadPage("singup"))" class="btn btn-outline">Let's Play!</button>
+            </div>
+        </div>
+        <div class="col-lg-5 my-auto">
+        </div>
+    </div>
+</header>
+
+<section id="download" class="container-fluid bg-primary py-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="text-center p-4">
+                <h2>The ShitHead Game is available on any device!</h2>
+                <p>Pin it to the home screen to get easy access to get notifications and enjoy full screen mode</p>
+                <button @onclick="@(() => PromptPwaInstall())" class="btn"><span>Pin</span></button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="cards" class="container py-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="text-center p-4">
+                <h2>Unlimited Card Features, Unlimited Fun</h2>
+                <p class="text-muted">Check out what the cards do!</p>
+                <hr />
+            </div>
+            <div class="d-flex justify-content-center row">
+                <div class="col-lg-4 col-md-6 col-12">
+                    <div class="d-flex justify-content-center">
+                        <CascadingValue Name="card" Value="@(new Models.Card(2, "♦"))">
+                            <Shithead.Client.Shared.Card />
+                        </CascadingValue>
+                    </div>
+                    <div class="text-center">
+                        <h3>Two</h3>
+                        <p class="text-muted">This cards value is two and can be placed on any card.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 col-12">
+                    <div class="d-flex justify-content-center">
+                        <CascadingValue Name="card" Value="@(new Models.Card(3, "♦"))">
+                            <Shithead.Client.Shared.Card />
+                        </CascadingValue>
+                    </div>
+                    <div class="text-center">
+                        <h3>Three</h3>
+                        <p class="text-muted">This cards value is three and can be placed on lower or equal cards.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 col-12">
+                    <div class="d-flex justify-content-center">
+                        <CascadingValue Name="card" Value="@(new Models.Card(4, "♦"))">
+                            <Shithead.Client.Shared.Card />
+                        </CascadingValue>
+                    </div>
+                    <div class="text-center">
+                        <h3>Four</h3>
+                        <p class="text-muted">This cards value is four and can be placed on lower or equal cards.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 col-12">
+                    <div class="d-flex justify-content-center">
+                        <CascadingValue Name="card" Value="@(new Models.Card(5, "♦"))">
+                            <Shithead.Client.Shared.Card />
+                        </CascadingValue>
+                    </div>
+                    <div class="text-center">
+                        <h3>Five</h3>
+                        <p class="text-muted">This cards value is five and can be placed on lower or equal cards.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 col-12">
+                    <div class="d-flex justify-content-center">
+                        <CascadingValue Name="card" Value="@(new Models.Card(6, "♦"))">
+                            <Shithead.Client.Shared.Card />
+                        </CascadingValue>
+                    </div>
+                    <div class="text-center">
+                        <h3>Six</h3>
+                        <p class="text-muted">This cards value is six and can be placed on lower or equal cards.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 col-12">
+                    <div class="d-flex justify-content-center">
+                        <CascadingValue Name="card" Value="@(new Models.Card(7, "♦"))">
+                            <Shithead.Client.Shared.Card />
+                        </CascadingValue>
+                    </div>
+                    <div class="text-center">
+                        <h3>Seven</h3>
+                        <p class="text-muted">This card has no value and can only be placed on any other card with the same color. After placement you can call ‘lower’ or ‘higher’.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 col-12">
+                    <div class="d-flex justify-content-center">
+                        <CascadingValue Name="card" Value="@(new Models.Card(8, "♦"))">
+                            <Shithead.Client.Shared.Card />
+                        </CascadingValue>
+                    </div>
+                    <div class="text-center">
+                        <h3>Eight</h3>
+                        <p class="text-muted">This card has no value and can be placed on any card. This card is transparent that makes the card below still valid.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 col-12">
+                    <div class="d-flex justify-content-center">
+                        <CascadingValue Name="card" Value="@(new Models.Card(9, "♦"))">
+                            <Shithead.Client.Shared.Card />
+                        </CascadingValue>
+                    </div>
+                    <div class="text-center">
+                        <h3>Nine</h3>
+                        <p class="text-muted">This cards value is nine and can be placed on lower or equal cards.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 col-12">
+                    <div class="d-flex justify-content-center">
+                        <CascadingValue Name="card" Value="@(new Models.Card(10, "♦"))">
+                            <Shithead.Client.Shared.Card />
+                        </CascadingValue>
+                    </div>
+                    <div class="text-center">
+                        <h3>Ten</h3>
+                        <p class="text-muted">This cards value is ten and can be placed on lower or equal cards. After placement the pile will be emptied.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 col-12">
+                    <div class="d-flex justify-content-center">
+                        <CascadingValue Name="card" Value="@(new Models.Card(11, "♦"))">
+                            <Shithead.Client.Shared.Card />
+                        </CascadingValue>
+                    </div>
+                    <div class="text-center">
+                        <h3>Jack</h3>
+                        <p class="text-muted">This cards value is eleven and can be placed on lower or equal cards.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 col-12">
+                    <div class="d-flex justify-content-center">
+                        <CascadingValue Name="card" Value="@(new Models.Card(12, "♦"))">
+                            <Shithead.Client.Shared.Card />
+                        </CascadingValue>
+                    </div>
+                    <div class="text-center">
+                        <h3>Queen</h3>
+                        <p class="text-muted">This cards value is twelve and can be placed on lower or equal cards.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 col-12">
+                    <div class="d-flex justify-content-center">
+                        <CascadingValue Name="card" Value="@(new Models.Card(13, "♦"))">
+                            <Shithead.Client.Shared.Card />
+                        </CascadingValue>
+                    </div>
+                    <div class="text-center">
+                        <h3>King</h3>
+                        <p class="text-muted">This cards value is thirteen and can be placed on lower or equal cards.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6 col-12">
+                    <div class="d-flex justify-content-center">
+                        <CascadingValue Name="card" Value="@(new Models.Card(14, "♦"))">
+                            <Shithead.Client.Shared.Card />
+                        </CascadingValue>
+                    </div>
+                    <div class="text-center">
+                        <h3>Ace</h3>
+                        <p class="text-muted">This cards value is fourteen and can be placed on lower or equal cards.</p>
+                    </div>
+                </div>
+                <div class="col-lg-6 col-md-6 col-12">
+                    <div class="d-flex justify-content-center">
+                        <CascadingValue Name="card" Value="@(new Models.Card(1, "♦"))">
+                            <Shithead.Client.Shared.Card />
+                        </CascadingValue>
+                    </div>
+                    <div class="text-center">
+                        <h3>Joker</h3>
+                        <p class="text-muted">This card has no value and can be placed on any card. This card is transparent that makes the card below still valid. </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="contact" class="container-fluid bg-primary py-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="text-center">
+                <h2>Contact</h2>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer class="container">
+    <p>© Copyright @DateTime.UtcNow.Date.Year – Shithead.Games</p>
+    <ul class="list-inline">
+        <li class="list-inline-item">
+            <a class="link">Privacy</a>
+        </li>
+        <li class="list-inline-item">
+            <a class="link">Terms</a>
+        </li>
+    </ul>
+</footer>
+
+
+@code {
+    /// <summary>
+    /// Prompts pwa install
+    /// </summary>
+    /// <returns></returns>
+    private async Task PromptPwaInstall() => await _jsRuntime.InvokeAsync<string>("promptPwaInstall");
+
+    /// <summary>
+    /// Loads another page
+    /// </summary>
+    private void LoadPage(string name) => _navigationManager.NavigateTo($"/{name}");
+}

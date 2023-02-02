@@ -1,0 +1,98 @@
+﻿#game {
+    .pile, .hand, .open, .trash, .closed {
+        font-size: Calc(100vh / 50);
+    }
+
+    .pile {
+        position: fixed;
+        width: 100vw;
+
+        .btn-group {
+            position: absolute;
+            top: Calc(100vh / 4);
+            transform: translateY(-50%);
+            z-index: 3;
+        }
+
+        .card {
+            position: absolute;
+
+            &.opacity {
+                opacity: 0.5;
+            }
+        }
+    }
+
+    .hand, .trash {
+        min-width: 100vw;
+        position: absolute;
+    }
+
+    .open {
+        min-width: 100vw;
+        position: absolute;
+        bottom: 2.5em;
+    }
+
+    .closed {
+        min-width: 100vw;
+        position: absolute;
+        bottom: 3em;
+        left: 50%;
+        transform: translateY(3em) translateX(calc(-50% - 1.5em));
+    }
+
+    .trash {
+        bottom: 0;
+    }
+
+    .head {
+        position: fixed;
+        left: 0;
+        width: 100%;
+        z-index: 5;
+
+        .current, .previous, .next {
+            border-radius: 50%;
+            padding: 0.2em;
+        }
+
+        .current {
+            @include linear-shine;
+        }
+
+        .previous {
+        }
+
+        .next {
+            background-color: $theme-primary;
+        }
+
+        .stats {
+            width: 100vw;
+            font-size: 0.3em;
+
+            .stats-closed {
+                position: absolute;
+                bottom: 1em;
+                left: 50%;
+                transform: translateY(3em) translateX(calc(-50% - 1.5em));
+            }
+
+            p {
+                //TODO: fix this elemten and style
+                position: absolute;
+                top: 12em;
+                background-color: $white;
+            }
+        }
+    }
+
+    .foot {
+        position: fixed;
+        bottom: 16px;
+        left: 0;
+        width: 100%;
+        z-index: 5;
+    }
+}

@@ -1,0 +1,36 @@
+﻿@inherits LayoutComponentBase;
+
+@inject IUserApiService _userService;
+
+@if (SessionUser.IsLoading) 
+{
+    <label>Loading...</label>
+}
+else
+{
+    @Body
+}
+
+@code {
+    /// <summary>
+    /// On initialized async
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        SessionUser.EventHandlerUserChanged += Rerender;
+    }
+
+    /// <summary>
+    /// Rerenders page
+    /// </summary>
+    public void Rerender(object sender, EventArgs e) => InvokeAsync(() => this.StateHasChanged());
+
+    /// <summary>
+    /// On after render async
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (SessionUser.IsNull) await _userService.SetUser();
+    }
+}

@@ -1,0 +1,38 @@
+﻿//Loads the palettes first so there are colors in the 'Components'.
+@import 'Palette/light';
+
+//Loads all Yasurf Email components
+@import 'EmailComponents/_all';
+
+.body {
+    text-align: center;
+    margin: 0;
+    padding: 30px 8px;
+    min-height: 100%;
+    background: $gray-lighter;
+    font-family: 'Gilroy', sans-serif;
+    font-size: 11px;
+    color: $gray-darker;
+}
+
+.header {
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.container {
+    text-align: center;
+    max-width: 500px;
+    border-radius: 10px;
+    padding: 35px 25px 40px 25px;
+    background: $white;
+    margin: 0 auto 30px auto;
+}
+
+.socials {
+    margin: 0 0 10px 0px;
+}
+
+.footer {
+    margin: 40px 0 45px 0;
+}

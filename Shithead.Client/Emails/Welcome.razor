@@ -1,0 +1,38 @@
+﻿@using System.Text.RegularExpressions;
+
+@layout Shithead.Client.Emails.Shared.Layouts.Main;
+
+<div style="@GetClass("container")">
+    <img style="@GetClass("image")">
+    <h1 style="@GetClass("text-25")">Welcom to Shitead.Games!</h1>
+    <p style="@GetClass("text-16")">
+        You only need to activate your account to start playing.
+    </p>
+    <a style="@GetClass("button")" href="https://www.shithead.games/verify/{emailToken}" tagret="_blank">Activate account</a>
+    <p style="@GetClass("text-12")">
+        If you haven't created a account at Shitead.Games, you can ignore this email.
+        The link in this email is valid for a short time.
+    </p>
+</div>
+
+@code {
+    /// <summary>
+    /// Css
+    /// </summary>
+    [CascadingParameter(Name = "Css")]
+    private string css { get; set; }
+
+    /// <summary>
+    /// Gets a css class frome the css string
+    /// </summary>
+    /// <returns></returns>
+    private string GetClass(string name)
+    {
+        if (string.IsNullOrEmpty(css)) return string.Empty;
+
+        var result = Regex.Match(css, $".{name}" + "{(.*?)}").Value;
+        if (string.IsNullOrEmpty(result)) return string.Empty;
+
+        return result.Replace($".{name}" + "{", string.Empty).Replace("}", string.Empty);
+    }
+}

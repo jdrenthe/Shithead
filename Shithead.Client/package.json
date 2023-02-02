@@ -1,0 +1,29 @@
+{
+  "name": "shithead",
+  "version": "v0.0.3",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Justin Drenthe",
+  "license": "ISC",
+  "devDependencies": {
+    "gulp": "4.0.2",
+    "gulp-autoprefixer": "8.0.0",
+    "gulp-concat": "2.6.1",
+    "gulp-cssmin": "0.2.0",
+    "gulp-install": "1.1.0",
+    "gulp-jsmin": "0.1.5",
+    "gulp-minify": "3.1.0",
+    "gulp-notify": "4.0.0",
+    "gulp-plumber": "1.2.1",
+    "gulp-rename": "2.0.0",
+    "gulp-sass": "5.1.0",
+    "gulp-uglify": "3.0.2"
+  },
+  "dependencies": {
+    "gulp-dependency-install": "0.0.8",
+    "node-sass": "7.0.1"
+  },
+  "description": ""
+}

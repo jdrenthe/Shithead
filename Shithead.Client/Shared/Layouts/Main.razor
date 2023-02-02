@@ -1,0 +1,91 @@
+﻿@using System.Timers;
+@inherits LayoutComponentBase;
+
+@inject IUserApiService _userService;
+@inject IJSRuntime _jsRuntime;
+
+@if (count > 10)
+{
+    <CascadingValue Name="tabes" Value="@true">
+        <Shithead.Client.Shared.Nav />
+    </CascadingValue>
+
+    @Body
+}
+ else
+{
+    <header @onclick="@(() => { count++; })" id="header" class="container-fluid vh-100">
+        <div class="row h-100">
+            <div class="col-12 my-auto">
+                <div class="mx-auto text-center color-white">
+                    <h1>Shithead.Games</h1>
+                    <h2>@countDown</h2>
+                    <hr />
+                    <label>Beta: v0.0.3</label>
+                </div>
+            </div>
+        </div>
+    </header>
+}
+
+@code {
+    /// <summary>
+    /// Count
+    /// </summary>
+    private int count { get; set; }
+
+    /// <summary>
+    /// Count down
+    /// </summary>
+    private string countDown { get; set; }
+
+    /// <summary>
+    /// End date
+    /// </summary>
+    private DateTime endDate = new(2023, 04, 20, 16, 20, 00);
+
+    /// <summary>
+    /// On initialized
+    /// </summary>
+    protected override void OnInitialized()
+    {
+        SessionUser.EventHandlerUserChanged += Rerender;
+
+        Timer timer = new(1000);
+        timer.Elapsed += IntervalElapsed;
+        timer.Enabled = true;
+
+        TimeSpan timeSpan = endDate.Subtract(DateTime.Now);
+        countDown = $"{timeSpan.Days} : {timeSpan.Hours} : {timeSpan.Minutes} : {timeSpan.Seconds}";
+    }
+
+    /// <summary>
+    /// Interval elapsed
+    /// </summary>
+    /// <param name="obj"></param>
+    /// <param name="args"></param>
+    private void IntervalElapsed(object obj, EventArgs args)
+    {
+        TimeSpan timeSpan = endDate.Subtract(DateTime.Now);
+        countDown = $"{timeSpan.Days} : {timeSpan.Hours} : {timeSpan.Minutes} : {timeSpan.Seconds}";
+        InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    /// Rerenders page
+    /// </summary>
+    public void Rerender(object sender, EventArgs e) => InvokeAsync(() => this.StateHasChanged());
+
+    /// <summary>
+    /// On after render async
+    /// </summary>
+    /// <param name="firstRender"></param>
+    /// <returns></returns>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        if (SessionUser.IsNull) await _userService.SetUser();
+        await _jsRuntime.InvokeAsync<string>("ready");
+    }
+}

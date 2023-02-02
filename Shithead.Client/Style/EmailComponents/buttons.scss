@@ -1,0 +1,21 @@
+.button {
+    color: $white;
+    padding: 16px 45px;
+    border-radius: 5px;
+    display: inline-block;
+    border: 0;
+    line-height: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    font-size: 16px;
+    background-color: $theme-primary;
+    font-weight: 600;
+    text-align: center;
+}
+
+.social-button {
+    height: 25px; 
+    width: 25px; 
+    border-radius: 3px; 
+    margin: 0 2px;
+}

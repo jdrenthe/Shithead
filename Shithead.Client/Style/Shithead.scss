@@ -1,0 +1,78 @@
+﻿//Bootstrap '_all'
+@import "Bootstrap/_all";
+
+//Loads the palettes first so there are colors in the 'Components'.
+@import 'Palette/light';
+
+//Loads '_all' 'Components'
+@import 'Components/_all';
+
+
+//Global style.
+body {
+    min-width: 318px;
+    @include body-font;
+}
+
+a, .link {
+    color: $theme-primary;
+    text-decoration: none;
+    @include transition-all;
+
+    &:hover,
+    &:focus {
+        color: darken($theme-primary, 10%);
+        cursor: pointer;
+    }
+}
+
+hr {
+    max-width: 100px;
+    margin: 25px auto 0;
+    border-width: 1px;
+    border-color: fade-out($gray-darker, .9);
+}
+
+hr.light {
+    border-color: white;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    @include heading-font;
+}
+
+p {
+    font-size: 18px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+.linear-wipe {
+    @include linear-shine;
+    color: #000;
+    font-weight: 700;
+    background-clip: text;
+    text-fill-color: transparent;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.bg-primary {
+    background: $theme-primary;
+    background: -webkit-linear-gradient($theme-primary, darken($theme-primary, 5%));
+    background: linear-gradient($theme-primary, darken($theme-primary, 5%));
+}
+
+.text-primary {
+    color: $theme-primary;
+}
+
+.full-screen {
+    height: 100vh;
+    width: 100vw;
+}

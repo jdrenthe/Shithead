@@ -1,0 +1,318 @@
+﻿@if (card != null)
+{
+    @*User img*@
+    var img = card.State == State.Pile || card.State == State.Blocked ? game?.Players.FirstOrDefault(p => p.Id == card.PlayerId).User.Image : null;
+
+    <div id="@card.Id" class="card @(card.IsDraggeble  ? "draggable" : null) @(card.IsDroppable && !card.IsBlocked ? "droppable" : card.IsBlocked ? "blocked" : null) @(card.Value == 8 || card.Value == 1 && card.State == State.Pile ? "opacity" : null)">
+        @if (card.State == State.Closed)
+        {
+            <div class="card-back" />
+        }
+        else if (card.Value == 1)
+        {
+            <div class="card-joker">
+                <div class="corner top">
+                    <span class="number">
+                        <span>J</span>
+                        <span>o</span>
+                        <span>k</span>
+                        <span>e</span>
+                        <span>r</span>
+                        <span class="star">✪</span>
+                        <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : String.Empty)" />
+                    </span>
+                </div>
+                <span class="suit middle_center">J</span>
+                <div class="corner bottom">
+                    <span class="number">
+                        <span>J</span>
+                        <span>o</span>
+                        <span>k</span>
+                        <span>e</span>
+                        <span>r</span>
+                        <span class="star">✪</span>
+                    </span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : String.Empty)" />
+                </div>
+            </div>
+        }
+        else if (card.Value == 2)
+        {
+            <div class="card-two @card.Symbol">
+                <div class="corner top">
+                    <span class="number">2</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+                <span class="suit top_center">@card.Symbol</span>
+                <span class="suit bottom_center">@card.Symbol</span>
+                <div class="corner bottom">
+                    <span class="number">2</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+            </div>
+        }
+        else if (card.Value == 3)
+        {
+            <div class="card-three @card.Symbol">
+                <div class="corner top">
+                    <span class="number">3</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+                <span class="suit top_center">@card.Symbol</span>
+                <span class="suit middle_center">@card.Symbol</span>
+                <span class="suit bottom_center">@card.Symbol</span>
+                <div class="corner bottom">
+                    <span class="number">3</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+            </div>
+        }
+        else if (card.Value == 4)
+        {
+            <div class="card-four @card.Symbol">
+                <div class="corner top">
+                    <span class="number">4</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+                <span class="suit top_left">@card.Symbol</span>
+                <span class="suit top_right">@card.Symbol</span>
+                <span class="suit bottom_left">@card.Symbol</span>
+                <span class="suit bottom_right">@card.Symbol</span>
+                <div class="corner bottom">
+                    <span class="number">4</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+            </div>
+        }
+        else if (card.Value == 5)
+        {
+            <div class="card-five @card.Symbol">
+                <div class="corner top">
+                    <span class="number">5</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+                <span class="suit top_left">@card.Symbol</span>
+                <span class="suit top_right">@card.Symbol</span>
+                <span class="suit middle_center">@card.Symbol</span>
+                <span class="suit bottom_left">@card.Symbol</span>
+                <span class="suit bottom_right">@card.Symbol</span>
+                <div class="corner bottom">
+                    <span class="number">5</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+            </div>
+        }
+        else if (card.Value == 6)
+        {
+            <div class="card-six @card.Symbol">
+                <div class="corner top">
+                    <span class="number">6</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+                <span class="suit top_left">@card.Symbol</span>
+                <span class="suit top_right">@card.Symbol</span>
+                <span class="suit middle_left">@card.Symbol</span>
+                <span class="suit middle_right">@card.Symbol</span>
+                <span class="suit bottom_left">@card.Symbol</span>
+                <span class="suit bottom_right">@card.Symbol</span>
+                <div class="corner bottom">
+                    <span class="number">6</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+            </div>
+        }
+        else if (card.Value == 7)
+        {
+            <div class="card-seven @card.Symbol">
+                <div class="corner top">
+                    <span class="number">7</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+                <span class="suit top_left">@card.Symbol</span>
+                <span class="suit top_right">@card.Symbol</span>
+                <span class="suit middle_left">@card.Symbol</span>
+                <span class="suit middle_top">@card.Symbol</span>
+                <span class="suit middle_right">@card.Symbol</span>
+                @if (card.Seven == Seven.Lower || card.Seven == Seven.Higher) 
+                {
+                    <span class="suit seven_text">@(card.Seven == Seven.Higher ? "Higher" : card.Seven == Seven.Lower ? "Lower" : string.Empty)</span>
+                }
+                <span class="suit bottom_left">@card.Symbol</span>
+                <span class="suit bottom_right">@card.Symbol</span>
+                <div class="corner bottom">
+                    <span class="number">7</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+            </div>
+        }
+        else if (card.Value == 8)
+        {
+            <div class="card-eight @card.Symbol">
+                <div class="corner top">
+                    <span class="number">8</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+                <span class="suit top_left">@card.Symbol</span>
+                <span class="suit top_right">@card.Symbol</span>
+                <span class="suit middle_left">@card.Symbol</span>
+                <span class="suit middle_top">@card.Symbol</span>
+                <span class="suit middle_right">@card.Symbol</span>
+                <span class="suit middle_bottom">@card.Symbol</span>
+                <span class="suit bottom_left">@card.Symbol</span>
+                <span class="suit bottom_right">@card.Symbol</span>
+                <div class="corner bottom">
+                    <span class="number">8</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+            </div>
+        }
+        else if (card.Value == 9)
+        {
+            <div class="card-nine @card.Symbol">
+                <div class="corner top">
+                    <span class="number">9</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+                <span class="suit top_left">@card.Symbol</span>
+                <span class="suit top_right">@card.Symbol</span>
+                <span class="suit middle_top_left">@card.Symbol</span>
+                <span class="suit middle_center">@card.Symbol</span>
+                <span class="suit middle_top_right">@card.Symbol</span>
+                <span class="suit bottom_left">@card.Symbol</span>
+                <span class="suit bottom_right">@card.Symbol</span>
+                <span class="suit middle_bottom_left">@card.Symbol</span>
+                <span class="suit middle_bottom_right">@card.Symbol</span>
+                <div class="corner bottom">
+                    <span class="number">9</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+            </div>
+        }
+        else if (card.Value == 10)
+        {
+            <div class="card-ten @card.Symbol">
+                <div class="corner top">
+                    <span class="number">10</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+                <span class="suit top_left">@card.Symbol</span>
+                <span class="suit top_right">@card.Symbol</span>
+                <span class="suit middle_top_left">@card.Symbol</span>
+                <span class="suit middle_top_center">@card.Symbol</span>
+                <span class="suit middle_top_right">@card.Symbol</span>
+                <span class="suit bottom_left">@card.Symbol</span>
+                <span class="suit bottom_right">@card.Symbol</span>
+                <span class="suit middle_bottom_center">@card.Symbol</span>
+                <span class="suit middle_bottom_left">@card.Symbol</span>
+                <span class="suit middle_bottom_right">@card.Symbol</span>
+                <div class="corner bottom">
+                    <span class="number">10</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+            </div>
+        }
+        else if (card.Value == 11)
+        {
+            <div class="card-jack @card.Symbol">
+                <div class="corner top">
+                    <span class="number">J</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+                <span class="face middle_center">
+                    <img loading="lazy" src="@($"img/faces/face-jack-{card.Symbol}.png")" />
+                </span>
+                <div class="corner bottom">
+                    <span class="number">J</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+            </div>
+        }
+        else if (card.Value == 12)
+        {
+            <div class="card-queen @card.Symbol">
+                <div class="corner top">
+                    <span class="number">Q</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+                <span class="face middle_center">
+                    <img loading="lazy" src="@($"img/faces/face-queen-{card.Symbol}.png")" />
+                </span>
+                <div class="corner bottom">
+                    <span class="number">Q</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+            </div>
+        }
+        else if (card.Value == 13)
+        {
+            <div class="card-king @card.Symbol">
+                <div class="corner top">
+                    <span class="number">K</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+
+                <span class="face middle_center">
+                    <img loading="lazy" src="@($"img/faces/face-king-{card.Symbol}.png")" />
+                </span>
+                <div class="corner bottom">
+                    <span class="number">K</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+            </div>
+        }
+        else if (card.Value == 14)
+        {
+            <div class="card-ace @card.Symbol">
+                <div class="corner top">
+                    <span class="number">A</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+                <span class="suit middle_center">@card.Symbol</span>
+                <div class="corner bottom">
+                    <span class="number">A</span>
+                    <Shithead.Client.Shared.Symbol symbol="@(!string.IsNullOrEmpty(img) ? img : card.Symbol)" />
+                </div>
+            </div>
+        }
+    </div>
+}
+else if (player != null)
+{
+    <div id="@player.Id" class="card droppable position-relative justify-content-center text-center">
+        <img loading="lazy" src="@player.User.Image" class="ratio ratio-1x1 user-large mx-auto d-block" alt="User image" />
+        @if (player.Id == user.Id)
+        {
+            <h3>@player.User.UserName</h3>
+            <label>Place a card</label>
+        }
+        else
+        {
+            <h3>@player.User.UserName</h3>
+            <label>Has to place a card</label>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>
+    /// Card
+    /// </summary>
+    [CascadingParameter(Name = "card")]
+    protected Models.Card card { get; set; }
+
+    /// <summary>
+    /// Player
+    /// </summary>
+    [CascadingParameter(Name = "player")]
+    protected Models.Player player { get; set; }
+
+    /// <summary>
+    /// Game
+    /// </summary>
+    private Models.Game game => SessionGame.Data;
+
+    /// <summary>
+    /// User
+    /// </summary>
+    private Models.User user => SessionUser.Data;
+}

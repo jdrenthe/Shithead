@@ -1,0 +1,19 @@
+﻿@if (!string.IsNullOrEmpty(symbol))
+{
+    if (symbol.Contains("base64"))
+    {
+        <img loading="lazy" src="@symbol" class="ratio ratio-1x1 user-x-small" alt="Player image" />
+    }
+    else
+    {
+        <span>@symbol</span>
+    }
+}
+
+@code {
+    /// <summary>
+    /// Tuple - item 1 : player img, item 2 : css class
+    /// </summary>
+    [Parameter]
+    public string symbol { get; set; }
+}

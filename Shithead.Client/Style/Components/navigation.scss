@@ -1,0 +1,38 @@
+﻿.navbar {
+    transition: 0.5s;
+
+    &.scrolled {
+        background: $white;
+        -moz-box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        -webkit-box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        transition: 0.5s;
+
+        .nav {
+            .nav-item {
+                .nav-link {
+                    color: $black;
+
+                    &.active {
+                        color: $theme-primary;
+                        background-color: unset;
+                    }
+                }
+            }
+
+            .nav-item {
+                .nav-link {
+                    color: $theme-primary;
+                }
+            }
+        }
+    }
+
+    .nav {
+        .nav-item {
+            .nav-link {
+                color: $theme-primary;
+            }
+        }
+    }
+}

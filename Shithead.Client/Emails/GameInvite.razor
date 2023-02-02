@@ -1,0 +1,49 @@
+﻿@using System.Text.RegularExpressions;
+
+@layout Shithead.Client.Emails.Shared.Layouts.Main;
+
+<div style="@GetClass("container")">
+    <img style="@GetClass("image")" src="@user.Image">
+    <h1 style="@GetClass("text-25")">@user.UserName</h1>
+    <p style="@GetClass("text-16")">
+        Has invited you to join a game of Shithead
+    </p>
+    <a style="@GetClass("button")" href="@url" tagret="_blank">Join</a>
+    <p style="@GetClass("text-12")">
+        If you don't want to know how good your game is, you can ignore this email.
+    </p>
+</div>
+
+@code {
+    /// <summary>
+    /// Css
+    /// </summary>
+    [CascadingParameter(Name = "Css")]
+    public string css { get; set; }
+
+    /// <summary>
+    /// Url
+    /// </summary>
+    [Parameter]
+    public string url { get; set; }
+
+    /// <summary>
+    /// User
+    /// </summary>
+    [Parameter]
+    public Models.User user { get; set; }
+
+    /// <summary>
+    /// Gets a css class frome the css string
+    /// </summary>
+    /// <returns></returns>
+    public string GetClass(string name)
+    {
+        if (string.IsNullOrEmpty(css)) return string.Empty;
+
+        var result = Regex.Match(css, $".{name}" + "{(.*?)}").Value;
+        if (string.IsNullOrEmpty(result)) return string.Empty;
+
+        return result.Replace($".{name}" + "{", string.Empty).Replace("}", string.Empty);
+    }
+}

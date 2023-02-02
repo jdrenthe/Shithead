@@ -1,0 +1,24 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/obj/Debug/net6.0
+/YasurfWebsite.Server/bin/Debug/net6.0
+/YasurfWebsite.Server/obj
+/YasurfWebsite.Shared/obj
+/YasurfWebsite.Shared/bin/Debug/net6.0
+/obj
+/YasurfWebsite.Server/bin/Release/net6.0
+/YasurfWebsite.Shared/bin/Release/net6.0
+/YasurfWebsite.Client/bin
+/YasurfWebsite.Client/node_modules
+/YasurfWebsite.Client/obj
+/YasurfWebsite.Client/package-lock.json
+/Shithead.Client/bin
+/Shithead.Client/node_modules
+/Shithead.Client/obj
+/Shithead.Server/bin
+/Shithead.Server/obj
+/Shithead.Shared/bin
+/Shithead.Shared/obj
